@@ -3,9 +3,12 @@ from rest_framework import serializers
 
 
 class AvailabilityQuerySerializer(serializers.Serializer):
+    """Validates the ``?date=`` query param for the availability endpoint."""
+
     date = serializers.DateField()
 
     def validate_date(self, value):
+        """Reject dates before today; past days have no bookable slots."""
         if value < timezone.localdate():
             raise serializers.ValidationError("Cannot check availability for a past date.")
         return value

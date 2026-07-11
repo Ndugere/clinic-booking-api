@@ -6,6 +6,8 @@ from .models import Patient
 
 
 class PatientRegistrationTests(APITestCase):
+    """Tests for POST /api/patients/register/."""
+
     def setUp(self):
         self.register_url = "/api/patients/register/"
         self.valid_payload = {
@@ -46,6 +48,8 @@ class PatientRegistrationTests(APITestCase):
 
 
 class PatientLoginTests(APITestCase):
+    """Tests for POST /api/patients/login/."""
+
     def setUp(self):
         self.login_url = "/api/patients/login/"
         self.register_url = "/api/patients/register/"

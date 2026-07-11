@@ -11,6 +11,8 @@ from .models import Doctor, WorkingHours
 
 
 class DoctorAvailabilityTests(APITestCase):
+    """Tests for GET /api/doctors/{id}/availability/."""
+
     def setUp(self):
         self.doctor = Doctor.objects.create(name="Dr. Otieno", specialty="Dentistry")
         # Pick a date 7 days out so "past date" tests never accidentally collide with it.

@@ -10,6 +10,8 @@ from .serializers import AvailabilityQuerySerializer, AvailabilityResponseSerial
 
 
 class DoctorAvailabilityView(APIView):
+    """Public endpoint listing a doctor's free slots for a given date."""
+
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -25,6 +27,7 @@ class DoctorAvailabilityView(APIView):
         responses={200: AvailabilityResponseSerializer},
     )
     def get(self, request, doctor_id):
+        """Return the doctor's available slot start-times for ``?date=``."""
         try:
             doctor = Doctor.objects.get(id=doctor_id)
         except Doctor.DoesNotExist:

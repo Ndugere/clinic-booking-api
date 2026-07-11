@@ -9,6 +9,14 @@ MIN_BOOKING_LEAD = timedelta(hours=1)
 
 
 def validate_slot(doctor, start_time, exclude_appointment_id=None):
+    """Raise ``ValidationError`` unless ``start_time`` is a bookable slot.
+
+    Checks, in order: not in the past, at least ``MIN_BOOKING_LEAD`` from
+    now, and present in the doctor's currently available slot grid (see
+    ``clinic.availability.get_available_slots``). ``exclude_appointment_id``
+    is passed through so a reschedule doesn't get blocked by the very
+    appointment it's replacing.
+    """
     now = timezone.now()
 
     if start_time < now:

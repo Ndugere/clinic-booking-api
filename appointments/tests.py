@@ -46,6 +46,8 @@ class AppointmentTestBase(APITestCase):
 
 
 class BookAppointmentTests(AppointmentTestBase):
+    """Tests for POST /api/appointments/."""
+
     def test_book_valid_slot_succeeds(self):
         self.as_patient_a()
         response = self.client.post(
@@ -130,6 +132,8 @@ class BookAppointmentTests(AppointmentTestBase):
 
 
 class CancelAppointmentTests(AppointmentTestBase):
+    """Tests for PATCH /api/appointments/{id}/cancel/."""
+
     def setUp(self):
         super().setUp()
         self.appointment = Appointment.objects.create(
@@ -191,6 +195,8 @@ class CancelAppointmentTests(AppointmentTestBase):
 
 
 class RescheduleAppointmentTests(AppointmentTestBase):
+    """Tests for PATCH /api/appointments/{id}/reschedule/."""
+
     def setUp(self):
         super().setUp()
         self.appointment = Appointment.objects.create(
@@ -258,6 +264,8 @@ class RescheduleAppointmentTests(AppointmentTestBase):
 
 
 class PatientAppointmentsListTests(AppointmentTestBase):
+    """Tests for GET /api/patients/{patient_id}/appointments/."""
+
     def test_lists_only_own_upcoming_booked_appointments_sorted(self):
         later_slot = self.slot_9am + timedelta(minutes=60)
         Appointment.objects.create(

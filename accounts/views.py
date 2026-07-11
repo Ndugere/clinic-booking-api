@@ -9,10 +9,13 @@ from .serializers import LoginSerializer, PatientSerializer, RegisterSerializer,
 
 
 class RegisterView(APIView):
+    """Public endpoint for creating a new patient account."""
+
     permission_classes = [AllowAny]
 
     @extend_schema(request=RegisterSerializer, responses={201: PatientSerializer})
     def post(self, request):
+        """Validate registration data, create the patient, and return its public fields."""
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         patient = serializer.save()
@@ -23,10 +26,13 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
+    """Public endpoint for exchanging email/password credentials for an auth token."""
+
     permission_classes = [AllowAny]
 
     @extend_schema(request=LoginSerializer, responses={200: TokenSerializer})
     def post(self, request):
+        """Authenticate the request and return (or create) the patient's DRF token."""
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]

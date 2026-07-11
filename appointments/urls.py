@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import BookAppointmentView, CancelAppointmentView, RescheduleAppointmentView
 
+# Mounted under /api/appointments/ by the root URLconf.
 urlpatterns = [
     path("", BookAppointmentView.as_view(), name="appointment-book"),
     path("<int:appointment_id>/cancel/", CancelAppointmentView.as_view(), name="appointment-cancel"),

@@ -34,6 +34,7 @@ class BookAppointmentView(APIView):
 
     @extend_schema(request=BookAppointmentSerializer, responses={201: AppointmentSerializer})
     def post(self, request):
+        """Book a slot for the authenticated patient, or 409 if it was just taken."""
         serializer = BookAppointmentSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
@@ -58,6 +59,7 @@ class CancelAppointmentView(APIView):
 
     @extend_schema(request=CancelAppointmentSerializer, responses={200: AppointmentSerializer})
     def patch(self, request, appointment_id):
+        """Cancel the appointment if it belongs to the requester and isn't already cancelled."""
         appointment = get_object_or_404(Appointment, id=appointment_id)
 
         if appointment.patient.user_id != request.user.id:
@@ -97,6 +99,7 @@ class RescheduleAppointmentView(APIView):
 
     @extend_schema(request=RescheduleAppointmentSerializer, responses={200: AppointmentSerializer})
     def patch(self, request, appointment_id):
+        """Move the appointment to a new start time, or 409 if that slot was just taken."""
         appointment = get_object_or_404(Appointment, id=appointment_id)
 
         if appointment.patient.user_id != request.user.id:
@@ -145,6 +148,7 @@ class PatientAppointmentsView(APIView):
 
     @extend_schema(responses={200: AppointmentSerializer(many=True)})
     def get(self, request, patient_id):
+        """Return the patient's own upcoming booked appointments, oldest first."""
         if request.user.patient.id != patient_id:
             return Response(
                 {"detail": "You do not have permission to view this patient's appointments."},

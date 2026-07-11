@@ -42,6 +42,7 @@ class BookAppointmentSerializer(serializers.Serializer):
     start_time = serializers.DateTimeField()
 
     def validate(self, attrs):
+        """Resolve the doctor and confirm the requested slot is bookable."""
         try:
             doctor = Doctor.objects.get(id=attrs["doctor_id"])
         except Doctor.DoesNotExist:
@@ -53,6 +54,7 @@ class BookAppointmentSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
+        """Create the appointment for the authenticated request's patient."""
         request = self.context["request"]
         patient = request.user.patient
         start_time = validated_data["start_time"]
@@ -66,8 +68,12 @@ class BookAppointmentSerializer(serializers.Serializer):
 
 
 class CancelAppointmentSerializer(serializers.Serializer):
+    """PATCH /api/appointments/{id}/cancel/ -- requires a non-blank reason."""
+
     reason = serializers.CharField(max_length=255, allow_blank=False)
 
 
 class RescheduleAppointmentSerializer(serializers.Serializer):
+    """PATCH /api/appointments/{id}/reschedule/ -- the new desired start time."""
+
     start_time = serializers.DateTimeField()
