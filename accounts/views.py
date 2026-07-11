@@ -9,13 +9,25 @@ from .serializers import LoginSerializer, PatientSerializer, RegisterSerializer,
 
 
 class RegisterView(APIView):
-    """Public endpoint for creating a new patient account."""
+    """Register a new patient account.
+
+    Public endpoint (no authentication required) -- this is the entry
+    point before a patient has any credentials.
+    """
 
     permission_classes = [AllowAny]
 
     @extend_schema(request=RegisterSerializer, responses={201: PatientSerializer})
     def post(self, request):
-        """Validate registration data, create the patient, and return its public fields."""
+        """Create a patient account and return its public profile fields.
+
+        Requires ``name``, ``email``, and ``password`` (minimum 8
+        characters); ``phone_number`` is optional. ``email`` must not
+        already be registered (checked case-insensitively) -- it becomes
+        the login username. The response contains only ``id``, ``name``,
+        and ``email``; no password or token is returned here, so call
+        ``/login/`` afterwards to obtain an auth token.
+        """
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         patient = serializer.save()
@@ -26,13 +38,22 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
-    """Public endpoint for exchanging email/password credentials for an auth token."""
+    """Exchange patient credentials for an API auth token.
+
+    Public endpoint (no authentication required).
+    """
 
     permission_classes = [AllowAny]
 
     @extend_schema(request=LoginSerializer, responses={200: TokenSerializer})
     def post(self, request):
-        """Authenticate the request and return (or create) the patient's DRF token."""
+        """Authenticate with ``email`` and ``password`` and return an auth token.
+
+        Send the returned token on subsequent requests as
+        ``Authorization: Token <token>``. The same token is reused across
+        logins (``get_or_create``) rather than a new one being issued per
+        session -- there is currently no endpoint to invalidate or rotate it.
+        """
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
