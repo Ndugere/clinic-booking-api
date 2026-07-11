@@ -5,15 +5,21 @@ from rest_framework import serializers
 from .models import Patient
 
 
+class PatientSerializer(serializers.Serializer):
+    """Response shape for a registered patient (documentation + register response)."""
+
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+
+
+class TokenSerializer(serializers.Serializer):
+    """Response shape for a successful login."""
+
+    token = serializers.CharField()
+
+
 class RegisterSerializer(serializers.Serializer):
-    """Validates registration input and creates a User + Patient together.
-
-    Email uniqueness is enforced here (at the serializer/User layer) since
-    Django's built-in User.email field is NOT unique by default. This is
-    intentionally the single source of truth for identity -- Patient does
-    not duplicate an email field (see accounts.models.Patient docstring).
-    """
-
     name = serializers.CharField(max_length=255)
     email = serializers.EmailField()
     phone_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
@@ -39,13 +45,6 @@ class RegisterSerializer(serializers.Serializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    """Validates credentials and resolves them to a Django User via authenticate().
-
-    Note: Django's authenticate() checks against `username`, so we log in
-    with `username=email` under the hood -- consistent with how we created
-    the user at registration time.
-    """
-
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 

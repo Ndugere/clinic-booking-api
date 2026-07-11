@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -5,19 +6,24 @@ from rest_framework.views import APIView
 
 from .availability import get_available_slots
 from .models import Doctor
-from .serializers import AvailabilityQuerySerializer
+from .serializers import AvailabilityQuerySerializer, AvailabilityResponseSerializer
 
 
 class DoctorAvailabilityView(APIView):
-    """GET /api/doctors/{doctor_id}/availability/?date=YYYY-MM-DD
-
-    Public endpoint -- overrides the project-wide IsAuthenticated
-    default, since a patient should be able to see what's free before
-    they've registered or logged in.
-    """
-
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="date",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                description="Date to check availability for, format YYYY-MM-DD. Must not be in the past.",
+            )
+        ],
+        responses={200: AvailabilityResponseSerializer},
+    )
     def get(self, request, doctor_id):
         try:
             doctor = Doctor.objects.get(id=doctor_id)

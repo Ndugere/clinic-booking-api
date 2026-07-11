@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -31,6 +32,7 @@ class BookAppointmentView(APIView):
     409 Conflict here.
     """
 
+    @extend_schema(request=BookAppointmentSerializer, responses={201: AppointmentSerializer})
     def post(self, request):
         serializer = BookAppointmentSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -54,6 +56,7 @@ class CancelAppointmentView(APIView):
     an already-cancelled appointment is rejected with a 400, per spec.
     """
 
+    @extend_schema(request=CancelAppointmentSerializer, responses={200: AppointmentSerializer})
     def patch(self, request, appointment_id):
         appointment = get_object_or_404(Appointment, id=appointment_id)
 
@@ -92,6 +95,7 @@ class RescheduleAppointmentView(APIView):
     patient never loses their original slot on a failed reschedule.
     """
 
+    @extend_schema(request=RescheduleAppointmentSerializer, responses={200: AppointmentSerializer})
     def patch(self, request, appointment_id):
         appointment = get_object_or_404(Appointment, id=appointment_id)
 
@@ -111,8 +115,6 @@ class RescheduleAppointmentView(APIView):
         serializer.is_valid(raise_exception=True)
         new_start = serializer.validated_data["start_time"]
 
-        # Validated as you would for a fresh booking, excluding this
-        # appointment's own current slot from the "already taken" check.
         validate_slot(appointment.doctor, new_start, exclude_appointment_id=appointment.id)
 
         try:
@@ -135,12 +137,13 @@ class RescheduleAppointmentView(APIView):
 class PatientAppointmentsView(APIView):
     """GET /api/patients/{patient_id}/appointments/
 
-    Bonus endpoint. Upcoming (BOOKED, start_time in the future)
-    appointments only, sorted by date. Although the patient_id is in
-    the URL, only the authenticated patient matching that id may access
-    it -- prevents enumerating other patients' appointment history.
+    Upcoming (BOOKED, start_time in the future) appointments only,
+    sorted by date. Although the patient_id is in the URL, only the
+    authenticated patient matching that id may access it -- prevents
+    enumerating other patients' appointment history.
     """
 
+    @extend_schema(responses={200: AppointmentSerializer(many=True)})
     def get(self, request, patient_id):
         if request.user.patient.id != patient_id:
             return Response(
