@@ -416,10 +416,23 @@ scale.
 
 ## CI/CD
 
-_TBD — GitHub Actions pipeline in progress._
+Pipeline runs via **GitHub Actions**, defined in
+`.github/workflows/ci-cd.yml`.
 
-- Branch that triggers deployment:
-- What the pipeline does:
+- **On every pull request to `main`:** the full test suite (28 tests
+  across all three apps) runs automatically. A red check blocks
+  merging with confidence that something's broken.
+- **On every push to `main`** (i.e. after a PR merges): the same test
+  suite runs again against the merged code, producing a GitHub Check
+  result on that commit.
+- **Deployment is gated on that check passing.** Render's own
+  "Auto-Deploy: After CI Checks Pass" setting watches GitHub's Checks
+  API and only triggers a deploy once the test job reports success —
+  I chose this over Render's default "deploy on every commit" because
+  it means a broken commit can never reach production, even if it
+  somehow got merged. This ties deployment directly to test results
+  rather than just to a successful `git push`.
+- **Branch that triggers deployment:** `main`.
 
 ---
 
