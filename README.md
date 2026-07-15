@@ -438,10 +438,4 @@ Pipeline runs via **GitHub Actions**, defined in
 
 ## Section 4: AI Reflection
 
-_(See below or `AI_REFLECTION.md`.)_
-
-1. **What did I use AI for across the four sections?**
-2. **One example where an AI suggestion improved my work — what did I prompt it with?**
-3. **One example where AI output was wrong or incomplete — how did I catch it?**
-4. **Two decisions I made without AI — why did I trust your own judgment there?**
-```
+   See [`AI_REFLECTION.md`](./AI_REFLECTION.md).
