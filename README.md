@@ -1,6 +1,3 @@
-
-
-```markdown
 # Clinic Booking API
 
 A REST API for a small clinic (5 doctors) that lets patients check a
@@ -16,6 +13,98 @@ booking, or reschedule it — built with Django REST Framework.
 - **Interactive API docs (Redoc):** https://clinic-booking-api-cnnv.onrender.com/api/redoc/
 - **Admin panel:** https://clinic-booking-api-cnnv.onrender.com/admin/
 - **Repository:** https://github.com/Ndugere/clinic-booking-api
+
+---
+
+## How to Test This
+
+The fastest way is the interactive Swagger docs — open
+https://clinic-booking-api-cnnv.onrender.com/api/docs/, use
+`POST /api/patients/register/` and `POST /api/patients/login/` to get
+a token, click **Authorize** at the top and paste `Token <your_token>`,
+then every other endpoint on the page becomes callable directly from
+the browser.
+
+For a scripted walkthrough hitting the exact endpoints in the brief,
+against the live deployment, in order:
+
+**1. Register a patient**
+```bash
+curl -X POST https://clinic-booking-api-cnnv.onrender.com/api/patients/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Test Patient", "email": "test@example.com", "password": "testpass123"}'
+```
+
+**2. Log in to get a token**
+```bash
+curl -X POST https://clinic-booking-api-cnnv.onrender.com/api/patients/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "testpass123"}'
+```
+Copy the `token` from the response for the steps below.
+
+**3. Check a doctor's availability** (`GET /doctors/{id}/availability`)
+```bash
+curl "https://clinic-booking-api-cnnv.onrender.com/api/doctors/3/availability/?date=2026-07-20"
+```
+Doctor `3` is Dr. Amina Achieng (General Practice, Mon–Fri 09:00–17:00)
+— July 20, 2026 is a Monday, so this returns a full day of open slots.
+The other 4 pre-seeded doctors are ids `4`–`7`, each with different
+specialties and working days (see "Seeding demo data" below).
+
+**4. Book one of those slots** (`POST /appointments`)
+```bash
+curl -X POST https://clinic-booking-api-cnnv.onrender.com/api/appointments/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Token PASTE_TOKEN_HERE" \
+  -d '{"doctor_id": 3, "start_time": "2026-07-20T09:00:00Z"}'
+```
+Note the returned `id` — needed below. Re-running this exact command a
+second time demonstrates the "already taken" validation (`400`);
+changing `start_time` to something in the past, or to within the next
+hour, demonstrates the other two validation rules.
+
+**5. Cancel it** (`PATCH /appointments/{id}/cancel`)
+```bash
+curl -X PATCH https://clinic-booking-api-cnnv.onrender.com/api/appointments/APPOINTMENT_ID/cancel/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Token PASTE_TOKEN_HERE" \
+  -d '{"reason": "Testing cancellation"}'
+```
+Running this a second time demonstrates the "already cancelled"
+validation (`400`). Re-checking step 3's availability afterward
+confirms the slot is bookable again.
+
+**6. Reschedule** (`PATCH /appointments/{id}/reschedule`)
+Book a fresh slot (repeat step 4 with a different `start_time`), then:
+```bash
+curl -X PATCH https://clinic-booking-api-cnnv.onrender.com/api/appointments/NEW_APPOINTMENT_ID/reschedule/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Token PASTE_TOKEN_HERE" \
+  -d '{"start_time": "2026-07-20T10:00:00Z"}'
+```
+
+**Bonus — upcoming appointments** (`GET /patients/{id}/appointments`)
+```bash
+curl https://clinic-booking-api-cnnv.onrender.com/api/patients/PATIENT_ID/appointments/ \
+  -H "Authorization: Token PASTE_TOKEN_HERE"
+```
+`PATIENT_ID` was returned in step 1's response.
+
+### Why doctors are already pre-seeded
+
+Render's free tier doesn't provide shell access, so there's no
+interactive way to run `createsuperuser` or manually seed data via
+Django Admin directly on the deployed instance. I solved this with two
+small, idempotent management commands
+(`accounts/management/commands/ensure_superuser.py` and
+`clinic/management/commands/seed_demo_data.py`) wired into the Render
+build step — they create an admin login and 5 demo doctors with
+realistic, varied working hours on first deploy, and safely do nothing
+on every deploy after that (they check for existing records before
+creating anything, so re-running them is harmless). This means the
+live app is always populated and testable without needing my admin
+credentials or any manual setup on your end.
 
 ---
 
@@ -316,15 +405,6 @@ Full interactive documentation, generated from the actual serializers
 (not hand-written, so it can't drift out of sync with the code):
 **https://clinic-booking-api-cnnv.onrender.com/api/docs/**
 
-### Example: booking an appointment
-
-```bash
-curl -X POST https://clinic-booking-api-cnnv.onrender.com/api/appointments/ \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Token <your_token>" \
-  -d '{"doctor_id": 1, "start_time": "2026-07-20T09:00:00Z"}'
-```
-
 **Validation enforced on every booking and reschedule** (each returns
 `400` with a specific message on failure):
 - Slot must fall within the doctor's working hours
@@ -333,6 +413,9 @@ curl -X POST https://clinic-booking-api-cnnv.onrender.com/api/appointments/ \
 - Slot must not already be booked — also enforced at the database
   level, which returns `409` if two requests genuinely race for the
   same slot
+
+See **"How to Test This"** above for a full worked example against the
+live deployment, using real curl commands and real pre-seeded doctors.
 
 ---
 
@@ -361,12 +444,25 @@ Then:
 
 ```bash
 python manage.py migrate
-python manage.py createsuperuser   # for /admin, to add doctors + working hours
+python manage.py createsuperuser   # for /admin
 python manage.py runserver
 ```
 
-Visit `http://127.0.0.1:8000/admin` to add a `Doctor` and their
-`WorkingHours` (inline on the same form), or
+### Seeding demo data
+
+```bash
+python manage.py seed_demo_data
+```
+
+Creates 5 doctors with realistic, varied working hours (different
+specialties, different days/hours per doctor) — safe to run multiple
+times, it checks for existing records by name and won't create
+duplicates. This is the same command that runs automatically as part
+of the production build on Render (see Deployment below), so the demo
+dataset is reproducible identically in both places.
+
+Visit `http://127.0.0.1:8000/admin` to inspect or add doctors and
+`WorkingHours` manually if you'd rather, or
 `http://127.0.0.1:8000/api/docs/` to explore and test the API directly
 in the browser.
 
@@ -392,7 +488,7 @@ connected directly to this GitHub repository.
 
 **Build command:**
 ```
-pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py ensure_superuser
+pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py ensure_superuser && python manage.py seed_demo_data
 ```
 
 **Start command:**
@@ -400,17 +496,27 @@ pip install -r requirements.txt && python manage.py collectstatic --noinput && p
 gunicorn config.wsgi:application
 ```
 
-`ensure_superuser` is a small custom management command
-(`accounts/management/commands/ensure_superuser.py`) that creates an
-admin user from environment variables on first deploy, and safely does
-nothing on every deploy after that. I added this because Render's free
-tier doesn't provide shell access, so there was no other way to get an
-initial admin login onto the production database without it.
+`ensure_superuser` and `seed_demo_data` are small custom management
+commands
+(`accounts/management/commands/ensure_superuser.py` and
+`clinic/management/commands/seed_demo_data.py`) that create an admin
+login and 5 demo doctors from environment variables / fixed data on
+first deploy, and safely do nothing on every deploy after that. I
+added these because Render's free tier doesn't provide shell access,
+so there was no other way to get an initial admin login and
+demonstrable data onto the production database without them.
 
 Static files (Django Admin CSS/JS, the Swagger UI assets) are served
 directly by the app in production via **WhiteNoise**, rather than
 needing a separate static file host — the simplest option at this
 scale.
+
+**Known constraint:** Render's free-tier PostgreSQL instances expire
+after 90 days and are deleted automatically. This is a platform limit,
+not something in my control — for the purposes of this submission it
+isn't a concern, but it's the first thing I'd change (upgrade to a
+persistent paid tier, or add a backup/restore step) if this were
+running long-term.
 
 ---
 
@@ -438,4 +544,4 @@ Pipeline runs via **GitHub Actions**, defined in
 
 ## Section 4: AI Reflection
 
-   See [`AI_REFLECTION.md`](./AI_REFLECTION.md).
+See [`AI_REFLECTION.md`](./AI_REFLECTION.md).
